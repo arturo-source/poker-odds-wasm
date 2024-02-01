@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arturo-source/poker-engine"
@@ -81,8 +83,73 @@ func calculateEquities(hands []poker.Cards, board poker.Cards) (equities map[*po
 }
 
 func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poker.Cards, err error) {
-	// TODO: replicate what parseCommandLine func does
-	return []poker.Cards{}, poker.NO_CARD, nil
+	// Read all Args input and transform them into cards
+	var allCards []poker.Cards
+	if len(handsStr) == 0 {
+		err = fmt.Errorf("at least one hand is needed")
+		return
+	}
+
+	if len(boardStr) > 10 {
+		err = fmt.Errorf("maximum cards in board are 5")
+		return
+	}
+
+	handsStrArray := strings.Split(handsStr, " ")
+	for _, handStr := range handsStrArray {
+		if len(handStr) != 4 {
+			err = fmt.Errorf("%s hand is not valid, hands must have 2 cards with a valid suit", colorize(handStr, NoSuit))
+			return
+		}
+
+		firstCardStr, secondCardStr := handStr[:2], handStr[2:]
+		firstCard, secondCard := poker.NewCard(firstCardStr), poker.NewCard(secondCardStr)
+		if firstCard == poker.NO_CARD {
+			err = fmt.Errorf("%s card (%s hand) is not valid", colorize(firstCardStr, NoSuit), colorize(handStr, NoSuit))
+			return
+		}
+		if secondCard == poker.NO_CARD {
+			err = fmt.Errorf("%s card (%s hand) is not valid", colorize(secondCardStr, NoSuit), colorize(handStr, NoSuit))
+			return
+		}
+
+		hand := poker.JoinCards(firstCard, secondCard)
+		hands = append(hands, hand)
+
+		allCards = append(allCards, firstCard, secondCard)
+	}
+
+	// Read --board input and transform them into cards
+	for i := 0; i < len(boardStr); i += 2 {
+		end := i + 2
+		if end > len(boardStr) {
+			end = len(boardStr)
+		}
+
+		cardStr := boardStr[i:end]
+		card := poker.NewCard(cardStr)
+		if card == poker.NO_CARD {
+			err = fmt.Errorf("%s card (%s board) is not valid", colorize(cardStr, NoSuit), colorize(boardStr, NoSuit))
+			return
+		}
+
+		board = board.AddCards(card)
+
+		allCards = append(allCards, card)
+	}
+
+	// Check if any card is repeated
+	allCardsJoined := poker.JoinCards(allCards...)
+	for _, card := range allCards {
+		if !allCardsJoined.CardsArePresent(card) {
+			err = fmt.Errorf("card %s is duplicated", colorizeCards(card))
+			return
+		}
+
+		allCardsJoined = allCardsJoined.QuitCards(card)
+	}
+
+	return hands, board, err
 }
 
 func getErrorInHTML(err error) string {
