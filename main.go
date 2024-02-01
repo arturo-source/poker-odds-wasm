@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/arturo-source/poker-engine"
@@ -81,16 +80,30 @@ func calculateEquities(hands []poker.Cards, board poker.Cards) (equities map[*po
 	return
 }
 
-func main() {
+func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poker.Cards, err error) {
+	// TODO: replicate what parseCommandLine func does
+	return []poker.Cards{}, poker.NO_CARD, nil
+}
+
+func getErrorInHTML(err error) string {
+	// TODO: create the HTML
+	return err.Error()
+}
+
+//export getResultsInHTML
+func getResultsInHTML(handsStr, boardStr string) string {
 	hands, board, err := parseCommandLine()
 	if err != nil {
-		fmt.Println(err)
-		return
+		return getErrorInHTML(err)
 	}
 
 	var start = time.Now()
 	equities, nCombinations := calculateEquities(hands, board)
 	timeElapsed := time.Since(start)
 
-	printResults(board, equities, nCombinations, timeElapsed)
+	// printResults(board, equities, nCombinations, timeElapsed)
+	// TODO: replicate what printResults func does, but with an HTML template
+	return ""
 }
+
+func main() {}
