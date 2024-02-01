@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,9 +15,9 @@ import (
 type handEquity map[poker.HandKind]uint
 
 type equity struct {
-	wins  uint
-	ties  uint
-	hands handEquity
+	Wins  uint
+	Ties  uint
+	Hands handEquity
 }
 
 func getCombinations(hands []poker.Cards, board poker.Cards) <-chan poker.Cards {
@@ -58,7 +60,7 @@ func calculateEquities(hands []poker.Cards, board poker.Cards) (equities map[*po
 	for _, hand := range hands {
 		player := &poker.Player{Hand: hand}
 		players = append(players, player)
-		equities[player] = equity{hands: make(handEquity)}
+		equities[player] = equity{Hands: make(handEquity)}
 	}
 
 	for comb := range getCombinations(hands, board) {
@@ -68,11 +70,11 @@ func calculateEquities(hands []poker.Cards, board poker.Cards) (equities map[*po
 		for _, winner := range winners {
 			playerEquity := equities[winner.Player]
 
-			playerEquity.hands[winner.HandKind]++
+			playerEquity.Hands[winner.HandKind]++
 			if justOneWinner {
-				playerEquity.wins++
+				playerEquity.Wins++
 			} else {
-				playerEquity.ties++
+				playerEquity.Ties++
 			}
 
 			equities[winner.Player] = playerEquity
@@ -158,15 +160,62 @@ func getErrorInHTML(err error) string {
 	const html = `<span>Error parsing input: {{.}}</span>`
 	buf := new(bytes.Buffer)
 
-	t, err := template.New("error").Parse(html)
+	t, _ := template.New("error").Parse(html)
 	t.Execute(buf, err.Error())
 
 	return buf.String()
 }
 
+const resultsTemplate = `
+{{if .board}}
+<span>board:</span> {{colorizeCards .board}}
+{{end}}
+<br>
+<table>
+	<thead>
+		<th>hand</th><th>win</th><th>tie</th>
+	</thead>
+	<tbody>
+		{{range .orderedPlayers}}
+		{{$eq := index $.equities .}}
+		<tr>
+			<td>{{colorizeCards .Hand}}</td> <td>{{printf "%.1f" (percentage $eq.Wins $.nCombinations)}}%</td> <td>{{printf "%.1f" (percentage $eq.Ties $.nCombinations)}}%</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+<br>
+<table>
+	<thead>
+		<th></th>{{range .orderedPlayers}}<th>{{colorizeCards .Hand}}</th> {{end}}
+	</thead>
+	<tbody>
+		{{range $hk := .handKinds}}
+		<tr>
+			<td>{{$hk}}</td>
+			{{range $.orderedPlayers}}
+			{{$eq := index $.equities .}}
+			{{$handEqPercentage := (percentage (index $eq.Hands $hk) (sum $eq.Wins $eq.Ties) )}}
+
+			{{if or (isNaN $handEqPercentage) (eq $handEqPercentage 0.0)}}
+			<td>.</td>
+			{{else if lt $handEqPercentage 0.1}}
+			<td>>0.1%</td>
+			{{else}}
+			<td>{{printf "%.1f" $handEqPercentage}}%</td>
+			{{end}}
+
+			{{end}}
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+<p>{{.nCombinations}} combinations in combinations calculated in {{.timeElapsed}}</p>
+`
+
 //export getResultsInHTML
 func getResultsInHTML(handsStr, boardStr string) string {
-	hands, board, err := parseCommandLine()
+	hands, board, err := parseUserInputs(handsStr, boardStr)
 	if err != nil {
 		return getErrorInHTML(err)
 	}
@@ -175,9 +224,42 @@ func getResultsInHTML(handsStr, boardStr string) string {
 	equities, nCombinations := calculateEquities(hands, board)
 	timeElapsed := time.Since(start)
 
-	// printResults(board, equities, nCombinations, timeElapsed)
-	// TODO: replicate what printResults func does, but with an HTML template
-	return ""
+	buf := new(bytes.Buffer)
+	t, err := template.New("results").Funcs(
+		template.FuncMap{
+			"colorizeCards": colorizeCards,
+			"isNaN":         math.IsNaN,
+			"percentage": func(n, total uint) float64 {
+				return float64(n) / float64(total) * 100
+			},
+			"sum": func(nums ...uint) uint {
+				var sum uint
+				for _, num := range nums {
+					sum += num
+				}
+
+				return sum
+			},
+		}).Parse(resultsTemplate)
+
+	var orderedPlayers = make([]*poker.Player, 0, len(equities))
+	for player := range equities {
+		orderedPlayers = append(orderedPlayers, player)
+	}
+	sort.Slice(orderedPlayers, func(i, j int) bool {
+		return equities[orderedPlayers[i]].Wins > equities[orderedPlayers[j]].Wins
+	})
+	handKinds := []poker.HandKind{poker.HIGHCARD, poker.PAIR, poker.TWOPAIR, poker.THREEOFAKIND, poker.STRAIGHT, poker.FLUSH, poker.FULLHOUSE, poker.FOUROFAKIND, poker.STRAIGHTFLUSH, poker.ROYALFLUSH}
+
+	t.Execute(buf, map[string]any{
+		"board":          board,
+		"equities":       equities,
+		"orderedPlayers": orderedPlayers,
+		"handKinds":      handKinds,
+		"nCombinations":  nCombinations,
+		"timeElapsed":    timeElapsed,
+	})
+	return buf.String()
 }
 
 func main() {}

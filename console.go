@@ -181,7 +181,7 @@ func printResults(board poker.Cards, equities map[*poker.Player]equity, nCombina
 		playerPointers = append(playerPointers, player)
 	}
 	sort.Slice(playerPointers, func(i, j int) bool {
-		return equities[playerPointers[i]].wins > equities[playerPointers[j]].wins
+		return equities[playerPointers[i]].Wins > equities[playerPointers[j]].Wins
 	})
 
 	// Print board
@@ -200,8 +200,8 @@ func printResults(board poker.Cards, equities map[*poker.Player]equity, nCombina
 	fmt.Printf("%s %*s %*s\n", colorize("hand", Gray), pad, colorize("win", Gray), pad+2, colorize("tie", Gray))
 	for _, player := range playerPointers {
 		eq := equities[player]
-		winPercentage := float64(eq.wins) / float64(nCombinations) * 100
-		tiePercentage := float64(eq.ties) / float64(nCombinations) * 100
+		winPercentage := float64(eq.Wins) / float64(nCombinations) * 100
+		tiePercentage := float64(eq.Ties) / float64(nCombinations) * 100
 		fmt.Printf("%s %5.1f%% %5.1f%%\n", colorizeCards(player.Hand), winPercentage, tiePercentage)
 	}
 
@@ -222,7 +222,7 @@ func printResults(board poker.Cards, equities map[*poker.Player]equity, nCombina
 		fmt.Printf("%-16s", hk)
 		for _, player := range playerPointers {
 			eq := equities[player]
-			handEqPercentage := float64(eq.hands[hk]) / float64(eq.wins+eq.ties) * 100
+			handEqPercentage := float64(eq.Hands[hk]) / float64(eq.Wins+eq.Ties) * 100
 			if math.IsNaN(handEqPercentage) || handEqPercentage == 0.0 {
 				fmt.Printf("%7s%s", "", colorize(".", Gray))
 			} else if handEqPercentage < 0.1 {
