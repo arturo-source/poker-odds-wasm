@@ -153,8 +153,14 @@ func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poke
 }
 
 func getErrorInHTML(err error) string {
-	// TODO: create the HTML
-	return err.Error()
+	var html string
+
+	html += `<span>`
+	html += `Error parsing input: `
+	html += err.Error()
+	html += `</span>`
+
+	return html
 }
 
 //export getResultsInHTML
