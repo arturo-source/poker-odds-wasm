@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
@@ -153,14 +155,13 @@ func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poke
 }
 
 func getErrorInHTML(err error) string {
-	var html string
+	const html = `<span>Error parsing input: {{.}}</span>`
+	buf := new(bytes.Buffer)
 
-	html += `<span>`
-	html += `Error parsing input: `
-	html += err.Error()
-	html += `</span>`
+	t, err := template.New("error").Parse(html)
+	t.Execute(buf, err.Error())
 
-	return html
+	return buf.String()
 }
 
 //export getResultsInHTML
