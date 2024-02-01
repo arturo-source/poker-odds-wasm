@@ -86,6 +86,44 @@ func calculateEquities(hands []poker.Cards, board poker.Cards) (equities map[*po
 	return
 }
 
+const (
+	NoSuit        = "#FFD700"
+	SpadesColor   = "#000000"
+	ClubsColor    = "#008000"
+	HeartsColor   = "#FF4500"
+	DiamondsColor = "#4169E1"
+)
+
+func colorize(txt string, color string) template.HTML {
+	html := fmt.Sprintf(`<span style="color: %s;">%s</span>`, color, txt)
+	return template.HTML(html)
+}
+
+func colorizeCards(cards poker.Cards) template.HTML {
+	colorizeSuit := func(suit poker.Cards, color string) template.HTML {
+		var cardsStr template.HTML
+
+		suitStr := poker.SUIT_VALUES[suit]
+		cardsSuited := cards & suit
+
+		for cardNum, cardNumStr := range poker.NUMBER_VALUES {
+			card := cardsSuited & cardNum
+			if card != poker.NO_CARD {
+				cardsStr += colorize(cardNumStr+suitStr, color)
+			}
+		}
+
+		return cardsStr
+	}
+
+	spadesStr := colorizeSuit(poker.SPADES, SpadesColor)
+	clubsStr := colorizeSuit(poker.CLUBS, ClubsColor)
+	heartsStr := colorizeSuit(poker.HEARTS, HeartsColor)
+	diamondsStr := colorizeSuit(poker.DIAMONDS, DiamondsColor)
+
+	return template.HTML(fmt.Sprint(spadesStr, clubsStr, heartsStr, diamondsStr))
+}
+
 func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poker.Cards, err error) {
 	// Read all Args input and transform them into cards
 	var allCards []poker.Cards
@@ -168,9 +206,12 @@ func getErrorInHTML(err error) string {
 
 const resultsTemplate = `
 {{if .board}}
-<span>board:</span> {{colorizeCards .board}}
+<table>
+	<tbody>
+		<tr><td>board:</td><td>{{colorizeCards .board}}</td></tr>
+	</tbody>
+</table>
 {{end}}
-<br>
 <table>
 	<thead>
 		<th>hand</th><th>win</th><th>tie</th>
@@ -184,7 +225,6 @@ const resultsTemplate = `
 		{{end}}
 	</tbody>
 </table>
-<br>
 <table>
 	<thead>
 		<th></th>{{range .orderedPlayers}}<th>{{colorizeCards .Hand}}</th> {{end}}
@@ -210,7 +250,7 @@ const resultsTemplate = `
 		{{end}}
 	</tbody>
 </table>
-<p>{{.nCombinations}} combinations in combinations calculated in {{.timeElapsed}}</p>
+<p>{{.nCombinations}} combinations calculated in {{.timeElapsed}}</p>
 `
 
 //export getResultsInHTML
