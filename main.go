@@ -125,6 +125,8 @@ func colorizeCards(cards poker.Cards) template.HTML {
 }
 
 func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poker.Cards, err error) {
+	handsStr = strings.TrimSpace(handsStr)
+	boardStr = strings.TrimSpace(boardStr)
 	// Read all Args input and transform them into cards
 	var allCards []poker.Cards
 	if len(handsStr) == 0 {
