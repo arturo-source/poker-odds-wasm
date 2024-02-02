@@ -95,14 +95,13 @@ const (
 	DiamondsColor = "#4169E1"
 )
 
-func colorize(txt string, color string) template.HTML {
-	html := fmt.Sprintf(`<span style="color: %s;">%s</span>`, color, txt)
-	return template.HTML(html)
+func colorize(txt string, color string) string {
+	return fmt.Sprintf(`<span style="color: %s;">%s</span>`, color, txt)
 }
 
 func colorizeCards(cards poker.Cards) template.HTML {
-	colorizeSuit := func(suit poker.Cards, color string) template.HTML {
-		var cardsStr template.HTML
+	colorizeSuit := func(suit poker.Cards, color string) string {
+		var cardsStr string
 
 		suitStr := poker.SUIT_VALUES[suit]
 		cardsSuited := cards & suit
@@ -122,7 +121,7 @@ func colorizeCards(cards poker.Cards) template.HTML {
 	heartsStr := colorizeSuit(poker.HEARTS, HeartsColor)
 	diamondsStr := colorizeSuit(poker.DIAMONDS, DiamondsColor)
 
-	return template.HTML(fmt.Sprint(spadesStr, clubsStr, heartsStr, diamondsStr))
+	return template.HTML(spadesStr + clubsStr + heartsStr + diamondsStr)
 }
 
 func parseUserInputs(handsStr, boardStr string) (hands []poker.Cards, board poker.Cards, err error) {
@@ -200,7 +199,8 @@ func getErrorInHTML(err error) string {
 	buf := new(bytes.Buffer)
 
 	t, _ := template.New("error").Parse(html)
-	t.Execute(buf, err.Error())
+	errorHtml := template.HTML(err.Error())
+	t.Execute(buf, errorHtml)
 
 	return buf.String()
 }
