@@ -2,13 +2,24 @@ package main
 
 import (
 	"syscall/js"
+	"time"
 )
 
 func main() {
 	js.Global().Set("getResultsInHTML", js.FuncOf(func(this js.Value, args []js.Value) any {
 		handsStr := args[0].String()
 		boardStr := args[1].String()
-		return getResultsInHTML(handsStr, boardStr)
+
+		hands, board, err := parseUserInputs(handsStr, boardStr)
+		if err != nil {
+			return getErrorInHTML(err)
+		}
+
+		var start = time.Now()
+		equities, nCombinations := calculateEquities(hands, board)
+		timeElapsed := time.Since(start)
+
+		return getResultsInHTML(handsStr, boardStr, equities, nCombinations, timeElapsed)
 	}))
 
 	// listen infinite

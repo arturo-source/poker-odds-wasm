@@ -181,18 +181,9 @@ const resultsTemplate = `
 <p>{{.nCombinations}} combinations calculated in {{.timeElapsed}}</p>
 `
 
-func getResultsInHTML(handsStr, boardStr string) string {
-	hands, board, err := parseUserInputs(handsStr, boardStr)
-	if err != nil {
-		return getErrorInHTML(err)
-	}
-
-	var start = time.Now()
-	equities, nCombinations := calculateEquities(hands, board)
-	timeElapsed := time.Since(start)
-
+func getResultsInHTML(hands []poker.Cards, board poker.Cards, equities map[*poker.Player]equity, nCombinations uint, timeElapsed time.Duration) string {
 	buf := new(bytes.Buffer)
-	t, err := template.New("results").Funcs(
+	t, _ := template.New("results").Funcs(
 		template.FuncMap{
 			"colorizeCards": colorizeCards,
 			"isNaN":         math.IsNaN,
