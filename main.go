@@ -19,7 +19,7 @@ func main() {
 		equities, nCombinations := calculateEquities(hands, board)
 		timeElapsed := time.Since(start)
 
-		return getResultsInHTML(handsStr, boardStr, equities, nCombinations, timeElapsed)
+		return getResultsInHTML(hands, board, equities, nCombinations, timeElapsed)
 	}))
 
 	// listen infinite
