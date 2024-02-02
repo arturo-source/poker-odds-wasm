@@ -7,6 +7,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"syscall/js"
 	"time"
 
 	"github.com/arturo-source/poker-engine"
@@ -253,7 +254,6 @@ const resultsTemplate = `
 <p>{{.nCombinations}} combinations calculated in {{.timeElapsed}}</p>
 `
 
-//export getResultsInHTML
 func getResultsInHTML(handsStr, boardStr string) string {
 	hands, board, err := parseUserInputs(handsStr, boardStr)
 	if err != nil {
@@ -302,4 +302,13 @@ func getResultsInHTML(handsStr, boardStr string) string {
 	return buf.String()
 }
 
-func main() {}
+func main() {
+	js.Global().Set("getResultsInHTML", js.FuncOf(func(this js.Value, args []js.Value) any {
+		handsStr := args[0].String()
+		boardStr := args[1].String()
+		return getResultsInHTML(handsStr, boardStr)
+	}))
+
+	// listen infinite
+	<-make(chan bool)
+}
